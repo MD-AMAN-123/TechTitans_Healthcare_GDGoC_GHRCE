@@ -1,0 +1,8 @@
+{
+  "name": "MediPulse AI",
+  "description": "A comprehensive healthcare innovation platform featuring AI-powered symptom analysis, health tracking dashboards, and telemedicine appointment scheduling.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
