@@ -492,7 +492,11 @@ const App: React.FC = () => {
             userName={user?.name || user?.given_name || "User"}
             userImage={user?.picture}
             metrics={metrics}
-            appointments={appointments.filter(a => a.patientMobile === user?.mobile)}
+            appointments={appointments.filter(a =>
+              user?.role === 'admin' ? true :
+                (user?.email && user.email !== 'guest@medipulse.ai') ? a.patientEmail === user.email :
+                  a.patientMobile === user?.mobile
+            )}
             notifications={notifications}
 
             onMarkNotificationRead={handleMarkNotificationRead}
@@ -511,7 +515,10 @@ const App: React.FC = () => {
           <LiveAssistant
             userName={user?.name || "User"}
             metrics={metrics}
-            appointments={isAdmin ? appointments : appointments.filter(a => a.patientMobile === user?.mobile)}
+            appointments={isAdmin ? appointments : appointments.filter(a =>
+              (user?.email && user.email !== 'guest@medipulse.ai') ? a.patientEmail === user.email :
+                a.patientMobile === user?.mobile
+            )}
             onUpdateProfile={handleAIUpdateProfile}
 
             onBookAppointment={handleAIBookAppointment}
@@ -750,10 +757,14 @@ const App: React.FC = () => {
       default:
         return (
           <Dashboard
-            userName={user?.given_name || "User"}
+            userName={user?.name || user?.given_name || "User"}
             userImage={user?.picture}
             metrics={metrics}
-            appointments={appointments.filter(a => a.patientName === (user?.name || "Guest User") || a.patientName === "Alex Johnson")}
+            appointments={appointments.filter(a =>
+              user?.role === 'admin' ? true :
+                (user?.email && user.email !== 'guest@medipulse.ai') ? a.patientEmail === user.email :
+                  a.patientMobile === user?.mobile
+            )}
             notifications={notifications}
             onMarkNotificationRead={handleMarkNotificationRead}
             onLogVitals={() => setIsVitalsModalOpen(true)}
