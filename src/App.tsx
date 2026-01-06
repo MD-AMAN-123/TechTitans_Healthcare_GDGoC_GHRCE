@@ -234,6 +234,7 @@ const App: React.FC = () => {
 
             setNotifications(prev => {
               // Remove the pending request notification for these appointments
+              // Use string includes to be safer against slight ID variations
               const filtered = prev.filter(n => !confirmedApts.some(apt => n.id === `request_${apt.id}`));
               return [...newNotifs, ...filtered];
             });
@@ -257,7 +258,7 @@ const App: React.FC = () => {
     } catch (e) {
       console.warn("Cloud sync failed.", e);
     }
-  }, [isAdmin]);
+  }, [isAdmin, user]);
 
   useEffect(() => {
     refreshAppointments(true);
@@ -345,7 +346,7 @@ const App: React.FC = () => {
     setAppointments(updatedAppointments);
 
     setNotifications(prev => [{
-      id: `request_${appointment.id}`,
+      id: `request_${enrichedAppointment.id}`,
       title: 'Booking Request Sent',
       message: `Your request for ${appointment.doctorName} on ${appointment.date} is pending approval.`,
       time: 'Just now',
