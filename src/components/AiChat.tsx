@@ -9,7 +9,7 @@ const AiChat: React.FC = () => {
     {
       id: '1',
       role: 'model',
-      text: "Hello! 👋 I'm MediPulse, your personal health assistant. I'm here to listen to your symptoms, answer your health questions, and help you feel better. How are you feeling today?",
+      text: "Hello! 👋 I'm MediPulse, your personal health assistant. I can provide **basic answers about medical conditions**, analyze your symptoms, and help you manage your health. How are you feeling today?",
       timestamp: new Date(),
     }
   ]);
@@ -34,6 +34,12 @@ const AiChat: React.FC = () => {
     const text = input.toLowerCase();
     if (text.includes('fever')) return "A fever is usually a sign that your body is fighting off an infection. Rest, stay hydrated, and monitor your temperature. If it exceeds 103°F (39.4°C) or lasts more than 3 days, please consult a doctor. 🌡️";
     if (text.includes('headache')) return "Headaches can be caused by stress, dehydration, or eye strain. Try resting in a dark room and drinking water. If it's severe or accompanied by vision changes, seek medical help. 🤕";
+    if (text.includes('cough')) return "A cough can be viral or due to allergies. Stay hydrated, try honey (for those over 1 year old), and use a humidifier. If you have difficulty breathing or it lasts >3 weeks, see a doctor. 🗣️";
+    if (text.includes('stomach') || text.includes('abdominal')) return "Stomach pain can range from indigestion to more serious issues. Try small sips of water or ginger tea. Avoid heavy foods. If the pain is severe, localized (like bottom right), or you have a high fever, seek urgent care. 🤢";
+    if (text.includes('cold') || text.includes('flu')) return "For a common cold or flu, the best treatment is usually rest, plenty of fluids, and over-the-counter pain relievers if needed. Symptoms typically peak at 2-3 days and can last up to 2 weeks. 🤧";
+    if (text.includes('burn')) return "For minor burns, run cool (not cold) water over the area for 10-20 minutes. Don't use ice or butter. Cover with a sterile bandage. See a doctor if it's large, deep, or on the face/hands. 🔥";
+    if (text.includes('sleep') || text.includes('insomnia')) return "Good sleep hygiene involves a consistent schedule, a dark/cool room, and avoiding screens 1 hour before bed. Try relaxation techniques if you're struggling to drift off. 😴";
+    if (text.includes('diabetes')) return "Diabetes is a chronic condition that affects how your body turns food into energy. It's crucial to monitor blood sugar, eat a balanced diet, and stay active as prescribed by your doctor. 🩸";
     if (text.includes('hello') || text.includes('hi')) return "Hello! I'm your MediPulse assistant. How can I help you with your health today? 😊";
     if (text.includes('appointment')) return "You can book an appointment by clicking the 'Book' tab in the bottom navigation menu. 📅";
     if (text.includes('who are you')) return "I am MediPulse AI, your personal health assistant designed to help you track vitals and manage your medical needs. 🤖";

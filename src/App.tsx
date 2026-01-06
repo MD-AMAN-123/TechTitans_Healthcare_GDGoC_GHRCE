@@ -180,58 +180,58 @@ const App: React.FC = () => {
     doctorsRef.current = doctors;
   }, [doctors]);
 
-  useEffect(() => {
-    const fetchFromServer = async (isFirstFetch: boolean = false) => {
-      // Don't fetch if we are currently pushing an update to avoid race conditions
-      if (isSyncingRef.current) return;
+  // Stabilize fetch function for use in both Effect and handleLogin
+  const refreshAppointments = React.useCallback(async (isFirstFetch: boolean = false) => {
+    if (isSyncingRef.current) return;
 
-      try {
-        const cloudAppointments = await apiService.fetchAppointments();
-        if (cloudAppointments) {
-          // If not first fetch and is admin, check for new appointments and notify
-          if (!isFirstFetch && isAdmin) {
-            const newApts = cloudAppointments.filter(ca => !appointmentsRef.current.some(a => a.id === ca.id));
-            if (newApts.length > 0) {
-              try {
-                const audio = new Audio(NOTIFICATION_SOUND);
-                audio.play().catch(e => console.log("Audio notify failed", e));
-              } catch (e) { }
+    try {
+      const cloudAppointments = await apiService.fetchAppointments();
+      if (cloudAppointments) {
+        // If not first fetch and is admin, check for new appointments and notify
+        if (!isFirstFetch && isAdmin) {
+          const newApts = cloudAppointments.filter(ca => !appointmentsRef.current.some(a => a.id === ca.id));
+          if (newApts.length > 0) {
+            try {
+              const audio = new Audio(NOTIFICATION_SOUND);
+              audio.play().catch(e => console.log("Audio notify failed", e));
+            } catch (e) { }
 
-              const newNotifs: Notification[] = newApts.map(apt => ({
-                id: `admin_new_${apt.id}_${Date.now()}`,
-                title: 'New Appointment Request',
-                message: `${apt.patientName} booked with ${apt.doctorName} for ${apt.date}.`,
-                time: 'Just now',
-                type: 'info',
-                read: false
-              }));
-              setNotifications(prev => [...newNotifs, ...prev]);
-            }
-          }
-
-          // Only update if data has actually changed to minimize re-renders
-          if (JSON.stringify(cloudAppointments) !== JSON.stringify(appointmentsRef.current)) {
-            setAppointments(cloudAppointments);
+            const newNotifs: Notification[] = newApts.map(apt => ({
+              id: `admin_new_${apt.id}_${Date.now()}`,
+              title: 'New Appointment Request',
+              message: `${apt.patientName} booked with ${apt.doctorName} for ${apt.date}.`,
+              time: 'Just now',
+              type: 'info',
+              read: false
+            }));
+            setNotifications(prev => [...newNotifs, ...prev]);
           }
         }
 
-        const cloudDoctors = await apiService.fetchDoctors();
-        if (cloudDoctors && cloudDoctors.length > 0) {
-          if (JSON.stringify(cloudDoctors) !== JSON.stringify(doctorsRef.current)) {
-            setDoctors(cloudDoctors);
-          }
+        // Only update if data has actually changed to minimize re-renders
+        if (JSON.stringify(cloudAppointments) !== JSON.stringify(appointmentsRef.current)) {
+          setAppointments(cloudAppointments);
         }
-
-        setHasLoadedFromServer(true);
-      } catch (e) {
-        console.warn("Cloud sync failed.", e);
       }
-    };
 
-    fetchFromServer(true);
-    const interval = setInterval(() => fetchFromServer(false), 5000);
+      const cloudDoctors = await apiService.fetchDoctors();
+      if (cloudDoctors && cloudDoctors.length > 0) {
+        if (JSON.stringify(cloudDoctors) !== JSON.stringify(doctorsRef.current)) {
+          setDoctors(cloudDoctors);
+        }
+      }
+
+      setHasLoadedFromServer(true);
+    } catch (e) {
+      console.warn("Cloud sync failed.", e);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    refreshAppointments(true);
+    const interval = setInterval(() => refreshAppointments(false), 5000);
     return () => clearInterval(interval);
-  }, [isAdmin, user?.mobile]);
+  }, [isAdmin, user?.mobile, refreshAppointments]);
 
 
   // Lifted state to support "Realtime" updates
@@ -283,7 +283,17 @@ const App: React.FC = () => {
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   const handleLogin = (userData: any) => {
+    const isNewAdmin = userData?.email === 'admin@medipulse.ai' || userData?.role === 'admin';
+
+    // Clear state before login change to ensure no "flicker" of old user data
+    // Admin especially must have a clean slate before fetching cloud data
+    setAppointments([]);
     setUser(userData);
+
+    // Immediate fetch after state update
+    if (isNewAdmin) {
+      setTimeout(() => refreshAppointments(true), 100);
+    }
   };
 
   const handleSaveVitals = (data: { heartRate: string; sleep: string; water: string }) => {
@@ -816,7 +826,10 @@ const App: React.FC = () => {
 
                 <div className="flex flex-col gap-3 w-full max-w-xs">
                   <button
-                    onClick={() => setUser(null)}
+                    onClick={() => {
+                      setUser(null);
+                      setAppointments([]);
+                    }}
                     className="w-full bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 py-3.5 rounded-2xl font-semibold hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center justify-center gap-2"
                   >
                     <LogOut size={18} />

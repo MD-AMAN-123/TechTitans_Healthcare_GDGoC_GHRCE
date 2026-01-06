@@ -18,7 +18,7 @@ const getClient = () => {
 export const initializeChat = async (): Promise<Chat> => {
   try {
     const ai = getClient();
-    
+
     // Using gemini-3-pro-preview for advanced reasoning and symptom checking
     chatSession = ai.chats.create({
       model: 'gemini-3-pro-preview',
@@ -26,18 +26,23 @@ export const initializeChat = async (): Promise<Chat> => {
         systemInstruction: `You are "MediPulse", a warm, empathetic, and highly knowledgeable AI medical assistant. 
         
         Your Core Mission:
-        To listen to patients, analyze their symptoms, and provide clear, accurate, and comforting medical information.
+        To listen to patients, analyze their symptoms, provide basic answers about medical conditions, and offer clear, accurate, and comforting health information.
         
         Tone & Persona:
         - Friendly & Attractive: Use a conversational, caring tone. Use comforting emojis occasionally (e.g., 🩺, 💙, ✨) to make the user feel at ease.
         - Professional: Maintain medical accuracy while being accessible.
         - Empathetic: Acknowledge the user's feelings (e.g., "I'm sorry to hear you're feeling that way").
 
+        Key Responsibilities:
+        1. Basic Medical Answers: Provide straightforward, easy-to-understand explanations for common medical terms, conditions, and health questions.
+        2. Symptom Analysis: Help users understand what their symptoms might mean without giving a definitive diagnosis.
+        3. Wellness Guidance: Offer advice on healthy living, nutrition, and mental well-being.
+
         Guidelines:
         1. Symptom Analysis: Ask clarifying questions if the user's description is vague.
         2. Clarity: Explain medical terms in simple language.
         3. Safety First: If symptoms sound severe (chest pain, difficulty breathing, etc.), immediately advise calling emergency services.
-        4. Disclaimer: ALWAYS include a disclaimer in your first response or when giving specific medical advice: "I am an AI, not a doctor. Please consult a healthcare professional for a formal diagnosis."
+        4. Disclaimer: ALWAYS include a disclaimer in your first response or when giving specific medical advice: "I am an AI assistant, not a doctor. Please consult a healthcare professional for a formal diagnosis."
         5. Innovation: Mention how modern monitoring (like heart rate tracking) can help manage their condition if relevant.
         `,
         temperature: 0.7,
@@ -63,11 +68,11 @@ export const sendMessageToGemini = async (message: string): Promise<AsyncIterabl
     try {
       await initializeChat();
     } catch (e) {
-       console.error("Chat init failed", e);
-       async function* errorGen() { 
-         yield { text: "⚠️ **Connection Error**: I couldn't initialize the medical database. Please check your internet connection or API key." }; 
-       }
-       return errorGen();
+      console.error("Chat init failed", e);
+      async function* errorGen() {
+        yield { text: "⚠️ **Connection Error**: I couldn't initialize the medical database. Please check your internet connection or API key." };
+      }
+      return errorGen();
     }
   }
 
@@ -75,10 +80,10 @@ export const sendMessageToGemini = async (message: string): Promise<AsyncIterabl
   async function* streamGenerator() {
     try {
       const result = await chatSession!.sendMessageStream({ message });
-      
+
       for await (const chunk of result) {
         const update: StreamUpdate = {};
-        
+
         if (chunk.text) {
           update.text = chunk.text;
         }
@@ -86,11 +91,11 @@ export const sendMessageToGemini = async (message: string): Promise<AsyncIterabl
         // Extract grounding metadata
         const groundingChunks = chunk.candidates?.[0]?.groundingMetadata?.groundingChunks;
         if (groundingChunks) {
-           const sources = groundingChunks
+          const sources = groundingChunks
             .map((c: any) => c.web)
             .filter((w: any) => w)
             .map((w: any) => ({ title: w.title, uri: w.uri }));
-          
+
           if (sources.length > 0) {
             update.sources = sources;
           }
@@ -100,25 +105,25 @@ export const sendMessageToGemini = async (message: string): Promise<AsyncIterabl
       }
     } catch (error: any) {
       console.error("Error sending message to Gemini:", error);
-      
+
       let errorMessage = "I'm having trouble connecting to the medical database right now. Please try again later.";
-      
+
       // Robust error parsing to handle nested JSON error objects often returned by GenAI SDK
       let errString = "";
       try {
-          errString = JSON.stringify(error);
-          // Sometimes error is an object with a message property
-          if (error?.message) errString += " " + error.message;
-          // Sometimes deeply nested
-          if (error?.error?.message) errString += " " + error.error.message;
+        errString = JSON.stringify(error);
+        // Sometimes error is an object with a message property
+        if (error?.message) errString += " " + error.message;
+        // Sometimes deeply nested
+        if (error?.error?.message) errString += " " + error.error.message;
       } catch {
-          errString = String(error);
+        errString = String(error);
       }
 
       // Check specifically for 429 / Quota errors
       if (
-        errString.includes("429") || 
-        errString.includes("RESOURCE_EXHAUSTED") || 
+        errString.includes("429") ||
+        errString.includes("RESOURCE_EXHAUSTED") ||
         errString.includes("quota")
       ) {
         // Minified HTML to prevent layout issues with newline replacement in frontend
@@ -137,9 +142,9 @@ export const generateHealthInsights = async (metrics: any[], mood?: string | nul
     const ai = getClient();
     // Format metrics for the prompt
     const metricsString = metrics.map(m => `${m.label}: ${m.value} ${m.unit} (${m.trend === 'up' ? 'increasing' : m.trend === 'down' ? 'decreasing' : 'stable'})`).join(', ');
-    
-    const moodContext = mood 
-      ? `The user reported their mood today is: "${mood}". Adjust your recommendations to fit this emotional state (e.g., if Terrible/Bad focus on mental relief/rest, if Good/Great focus on maintenance/challenge).` 
+
+    const moodContext = mood
+      ? `The user reported their mood today is: "${mood}". Adjust your recommendations to fit this emotional state (e.g., if Terrible/Bad focus on mental relief/rest, if Good/Great focus on maintenance/challenge).`
       : '';
 
     const response = await ai.models.generateContent({
@@ -164,7 +169,7 @@ export const generateHealthInsights = async (metrics: any[], mood?: string | nul
     });
 
     if (response.text) {
-        return JSON.parse(response.text) as HealthTip[];
+      return JSON.parse(response.text) as HealthTip[];
     }
     return [];
   } catch (error) {
@@ -180,12 +185,12 @@ export const generateHealthInsights = async (metrics: any[], mood?: string | nul
 
 export const generateVideoForTip = async (tip: HealthTip): Promise<string | null> => {
   const ai = getClient();
-  
+
   try {
     // Construct a prompt based on the text description of the tip
     const textContext = tip.description ? tip.description : `A health tip about ${tip.title}`;
     const prompt = `A cinematic, realistic, high-quality video illustrating the following health concept: "${tip.title}". Context from text: "${textContext}". The video should be educational and visually demonstrate the advice in a ${tip.category} setting.`;
-    
+
     let operation = await ai.models.generateVideos({
       model: 'veo-3.1-fast-generate-preview',
       prompt: prompt,
@@ -199,11 +204,11 @@ export const generateVideoForTip = async (tip: HealthTip): Promise<string | null
     // Polling for completion
     while (!operation.done) {
       await new Promise(resolve => setTimeout(resolve, 5000)); // Check every 5 seconds
-      operation = await ai.operations.getVideosOperation({operation: operation});
+      operation = await ai.operations.getVideosOperation({ operation: operation });
     }
 
     const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
-    
+
     // We append the key in the component when rendering, but returning the raw URI here.
     return videoUri || null;
   } catch (error) {
@@ -247,7 +252,7 @@ export const generateHealthImage = async (tip: HealthTip, size: '1K' | '2K' | '4
 
   } catch (error: any) {
     console.warn("Primary image model failed, attempting fallback...", error);
-    
+
     // Fallback Model: gemini-2.5-flash-image
     // Note: This model might not support specific imageSize configs, so we omit them.
     try {
@@ -257,16 +262,16 @@ export const generateHealthImage = async (tip: HealthTip, size: '1K' | '2K' | '4
           parts: [{ text: prompt }],
         },
         config: {
-            imageConfig: {
-                aspectRatio: "16:9",
-            }
+          imageConfig: {
+            aspectRatio: "16:9",
+          }
         }
       });
       return extractImage(response);
     } catch (fallbackError) {
       console.error("Fallback image generation also failed:", fallbackError);
       // Re-throw the original error to be handled by the UI (so 429s are visible)
-      throw error; 
+      throw error;
     }
   }
 };
@@ -329,13 +334,13 @@ export const generateSpeech = async (text: string): Promise<AudioBuffer | null> 
     });
 
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    
+
     if (!base64Audio) {
       console.warn("No audio data returned from Gemini TTS");
       return null;
     }
 
-    const outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
+    const outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     const audioBuffer = await decodeAudioData(
       decode(base64Audio),
       outputAudioContext,
@@ -457,42 +462,42 @@ export interface LiveContext {
 }
 
 export const connectLive = async (
-    context: LiveContext,
-    callbacks: {
-        onStatusChange: (status: 'connected' | 'disconnected' | 'error' | 'permission_denied') => void;
-        onVolume: (vol: number) => void;
-        onUpdateProfile: (data: { name?: string; email?: string; mobile?: string }) => void;
-        onBookAppointment: (data: { doctorName: string; specialty: string; date: string; time: string; type: 'video' | 'in-person' }) => void;
-        onAddDoctor?: (data: { name: string; specialty: string; price?: number; rating?: number }) => void;
-        onUpdateAppointment?: (data: { appointmentId: string; date?: string; time?: string; status?: string }) => void;
-        onDeleteAppointment?: (data: { appointmentId: string }) => void;
-    }
+  context: LiveContext,
+  callbacks: {
+    onStatusChange: (status: 'connected' | 'disconnected' | 'error' | 'permission_denied') => void;
+    onVolume: (vol: number) => void;
+    onUpdateProfile: (data: { name?: string; email?: string; mobile?: string }) => void;
+    onBookAppointment: (data: { doctorName: string; specialty: string; date: string; time: string; type: 'video' | 'in-person' }) => void;
+    onAddDoctor?: (data: { name: string; specialty: string; price?: number; rating?: number }) => void;
+    onUpdateAppointment?: (data: { appointmentId: string; date?: string; time?: string; status?: string }) => void;
+    onDeleteAppointment?: (data: { appointmentId: string }) => void;
+  }
 ) => {
-    // 1. Setup Audio Contexts
-    inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 16000});
-    outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
+  // 1. Setup Audio Contexts
+  inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+  outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
 
-    // Ensure context is running (sometimes needed if created outside gesture, though here it is inside)
-    if (inputAudioContext.state === 'suspended') await inputAudioContext.resume();
-    if (outputAudioContext.state === 'suspended') await outputAudioContext.resume();
+  // Ensure context is running (sometimes needed if created outside gesture, though here it is inside)
+  if (inputAudioContext.state === 'suspended') await inputAudioContext.resume();
+  if (outputAudioContext.state === 'suspended') await outputAudioContext.resume();
 
-    const ai = getClient();
+  const ai = getClient();
 
-    // Prepare Context String for System Instruction
-    const metricsStr = context.metrics.map(m => `${m.label}: ${m.value} ${m.unit}`).join(', ');
-    
-    // For Admin: Include IDs and Patient Names in the appointment context
-    const aptsStr = context.appointments.map(a => 
-      `[ID: ${a.id}] Patient: ${a.patientName || 'Guest'} | Dr. ${a.doctorName} (${a.specialty}) | Date: ${a.date} | Time: ${a.time} | Status: ${a.status}`
-    ).join('\n');
-    
-    const doctorsStr = context.doctors.map(d => `${d.name} (${d.specialty})`).join(', ');
+  // Prepare Context String for System Instruction
+  const metricsStr = context.metrics.map(m => `${m.label}: ${m.value} ${m.unit}`).join(', ');
 
-    let adminInstruction = "";
-    let activeTools = [updateProfileTool, bookAppointmentTool];
-    
-    if (context.isAdmin) {
-       adminInstruction = `
+  // For Admin: Include IDs and Patient Names in the appointment context
+  const aptsStr = context.appointments.map(a =>
+    `[ID: ${a.id}] Patient: ${a.patientName || 'Guest'} | Dr. ${a.doctorName} (${a.specialty}) | Date: ${a.date} | Time: ${a.time} | Status: ${a.status}`
+  ).join('\n');
+
+  const doctorsStr = context.doctors.map(d => `${d.name} (${d.specialty})`).join(', ');
+
+  let adminInstruction = "";
+  let activeTools = [updateProfileTool, bookAppointmentTool];
+
+  if (context.isAdmin) {
+    adminInstruction = `
        5. ADMIN MODE ACTIVE: You are speaking to an Administrator.
           - You have FULL ACCESS to view and modify all appointment data.
           - The appointment list provided contains IDs (e.g., [ID: 1]). Use these IDs to perform updates or deletions.
@@ -504,10 +509,10 @@ export const connectLive = async (
           - If the admin asks to "cancel the appointment for [Patient Name]", find the ID from the context and call 'deleteAppointment'.
           - If the admin asks to "change the time for [Patient Name]", call 'updateAppointment'.
        `;
-       activeTools.push(addDoctorTool, updateAppointmentTool, deleteAppointmentTool);
-    }
-    
-    const systemInstruction = `
+    activeTools.push(addDoctorTool, updateAppointmentTool, deleteAppointmentTool);
+  }
+
+  const systemInstruction = `
     You are MediBot, the advanced AI voice assistant for the MediPulse AI app.
     
     Your Capabilities:
@@ -531,206 +536,206 @@ export const connectLive = async (
     - If user wants to change their name or book a doctor, CALL THE TOOL immediately.
     `;
 
+  try {
+    // 2. Get Microphone Stream
+    // Wrapped in try-catch to explicitly handle permission errors
+    let stream;
     try {
-        // 2. Get Microphone Stream
-        // Wrapped in try-catch to explicitly handle permission errors
-        let stream;
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        } catch (err: any) {
-            console.error("Microphone permission failed:", err);
-            if (err.name === 'NotAllowedError' || err.name === 'PermissionDismissedError') {
-                callbacks.onStatusChange('permission_denied');
-            } else {
-                callbacks.onStatusChange('error');
-            }
-            return;
-        }
-        
-        // 3. Connect to Live API
-        const sessionPromise = ai.live.connect({
-            model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-            callbacks: {
-                onopen: () => {
-                    callbacks.onStatusChange('connected');
-                    
-                    // Setup Input Processing
-                    if (!inputAudioContext) return;
-                    inputSource = inputAudioContext.createMediaStreamSource(stream);
-                    processor = inputAudioContext.createScriptProcessor(4096, 1, 1);
-                    
-                    processor.onaudioprocess = (e) => {
-                        const inputData = e.inputBuffer.getChannelData(0);
-                        
-                        // Calculate volume for visualizer
-                        let sum = 0;
-                        for(let i=0; i<inputData.length; i++) sum += inputData[i] * inputData[i];
-                        callbacks.onVolume(Math.sqrt(sum / inputData.length));
-
-                        const pcmBlob = createPcmBlob(inputData);
-                        
-                        sessionPromise.then((session) => {
-                            session.sendRealtimeInput({ media: pcmBlob });
-                        });
-                    };
-
-                    inputSource.connect(processor);
-                    processor.connect(inputAudioContext.destination);
-                },
-                onmessage: async (message: LiveServerMessage) => {
-                    // Handle Tool Calls
-                    if (message.toolCall) {
-                        for (const fc of message.toolCall.functionCalls) {
-                            let result = { status: 'ok' };
-                            
-                            try {
-                                if (fc.name === 'updateProfile') {
-                                    callbacks.onUpdateProfile(fc.args as any);
-                                    result = { status: 'profile updated successfully' };
-                                } else if (fc.name === 'bookAppointment') {
-                                    callbacks.onBookAppointment(fc.args as any);
-                                    result = { status: 'appointment booked successfully' };
-                                } else if (fc.name === 'addDoctor' && context.isAdmin) {
-                                    if (callbacks.onAddDoctor) {
-                                        callbacks.onAddDoctor(fc.args as any);
-                                        result = { status: 'doctor added successfully' };
-                                    } else {
-                                        result = { status: 'error: capability not available' };
-                                    }
-                                } else if (fc.name === 'updateAppointment' && context.isAdmin) {
-                                    if (callbacks.onUpdateAppointment) {
-                                        callbacks.onUpdateAppointment(fc.args as any);
-                                        result = { status: 'appointment updated successfully' };
-                                    } else {
-                                        result = { status: 'error: capability not available' };
-                                    }
-                                } else if (fc.name === 'deleteAppointment' && context.isAdmin) {
-                                    if (callbacks.onDeleteAppointment) {
-                                        callbacks.onDeleteAppointment(fc.args as any);
-                                        result = { status: 'appointment deleted successfully' };
-                                    } else {
-                                        result = { status: 'error: capability not available' };
-                                    }
-                                }
-                            } catch (err) {
-                                console.error("Tool execution failed", err);
-                                result = { status: 'error executing action' };
-                            }
-
-                            // Send response back to model
-                            sessionPromise.then((session) => {
-                                session.sendToolResponse({
-                                    functionResponses: {
-                                        id: fc.id,
-                                        name: fc.name,
-                                        response: { result },
-                                    }
-                                });
-                            });
-                        }
-                    }
-
-                    const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-                    
-                    if (base64Audio && outputAudioContext) {
-                         nextStartTime = Math.max(nextStartTime, outputAudioContext.currentTime);
-                         
-                         const audioBuffer = await decodeAudioData(
-                            decode(base64Audio),
-                            outputAudioContext,
-                            24000,
-                            1
-                         );
-
-                         const source = outputAudioContext.createBufferSource();
-                         source.buffer = audioBuffer;
-                         source.connect(outputAudioContext.destination);
-                         
-                         source.addEventListener('ended', () => {
-                            sources.delete(source);
-                         });
-
-                         source.start(nextStartTime);
-                         nextStartTime += audioBuffer.duration;
-                         sources.add(source);
-                    }
-                    
-                    if (message.serverContent?.interrupted) {
-                        sources.forEach(s => s.stop());
-                        sources.clear();
-                        nextStartTime = 0;
-                    }
-                },
-                onclose: () => {
-                    callbacks.onStatusChange('disconnected');
-                    disconnectLive();
-                },
-                onerror: (e) => {
-                    console.error("Live API Error:", e);
-                    callbacks.onStatusChange('error');
-                    disconnectLive();
-                }
-            },
-            config: {
-                responseModalities: [Modality.AUDIO], // Use Modality.AUDIO enum
-                speechConfig: {
-                    voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
-                },
-                systemInstruction: systemInstruction,
-                thinkingConfig: { thinkingBudget: 0 },
-                tools: [{ functionDeclarations: activeTools }]
-            }
-        });
-        
-        liveSession = sessionPromise;
-
-    } catch (error) {
-        console.error("Failed to connect live:", error);
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err: any) {
+      console.error("Microphone permission failed:", err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDismissedError') {
+        callbacks.onStatusChange('permission_denied');
+      } else {
         callbacks.onStatusChange('error');
+      }
+      return;
     }
+
+    // 3. Connect to Live API
+    const sessionPromise = ai.live.connect({
+      model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+      callbacks: {
+        onopen: () => {
+          callbacks.onStatusChange('connected');
+
+          // Setup Input Processing
+          if (!inputAudioContext) return;
+          inputSource = inputAudioContext.createMediaStreamSource(stream);
+          processor = inputAudioContext.createScriptProcessor(4096, 1, 1);
+
+          processor.onaudioprocess = (e) => {
+            const inputData = e.inputBuffer.getChannelData(0);
+
+            // Calculate volume for visualizer
+            let sum = 0;
+            for (let i = 0; i < inputData.length; i++) sum += inputData[i] * inputData[i];
+            callbacks.onVolume(Math.sqrt(sum / inputData.length));
+
+            const pcmBlob = createPcmBlob(inputData);
+
+            sessionPromise.then((session) => {
+              session.sendRealtimeInput({ media: pcmBlob });
+            });
+          };
+
+          inputSource.connect(processor);
+          processor.connect(inputAudioContext.destination);
+        },
+        onmessage: async (message: LiveServerMessage) => {
+          // Handle Tool Calls
+          if (message.toolCall) {
+            for (const fc of message.toolCall.functionCalls) {
+              let result = { status: 'ok' };
+
+              try {
+                if (fc.name === 'updateProfile') {
+                  callbacks.onUpdateProfile(fc.args as any);
+                  result = { status: 'profile updated successfully' };
+                } else if (fc.name === 'bookAppointment') {
+                  callbacks.onBookAppointment(fc.args as any);
+                  result = { status: 'appointment booked successfully' };
+                } else if (fc.name === 'addDoctor' && context.isAdmin) {
+                  if (callbacks.onAddDoctor) {
+                    callbacks.onAddDoctor(fc.args as any);
+                    result = { status: 'doctor added successfully' };
+                  } else {
+                    result = { status: 'error: capability not available' };
+                  }
+                } else if (fc.name === 'updateAppointment' && context.isAdmin) {
+                  if (callbacks.onUpdateAppointment) {
+                    callbacks.onUpdateAppointment(fc.args as any);
+                    result = { status: 'appointment updated successfully' };
+                  } else {
+                    result = { status: 'error: capability not available' };
+                  }
+                } else if (fc.name === 'deleteAppointment' && context.isAdmin) {
+                  if (callbacks.onDeleteAppointment) {
+                    callbacks.onDeleteAppointment(fc.args as any);
+                    result = { status: 'appointment deleted successfully' };
+                  } else {
+                    result = { status: 'error: capability not available' };
+                  }
+                }
+              } catch (err) {
+                console.error("Tool execution failed", err);
+                result = { status: 'error executing action' };
+              }
+
+              // Send response back to model
+              sessionPromise.then((session) => {
+                session.sendToolResponse({
+                  functionResponses: {
+                    id: fc.id,
+                    name: fc.name,
+                    response: { result },
+                  }
+                });
+              });
+            }
+          }
+
+          const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+
+          if (base64Audio && outputAudioContext) {
+            nextStartTime = Math.max(nextStartTime, outputAudioContext.currentTime);
+
+            const audioBuffer = await decodeAudioData(
+              decode(base64Audio),
+              outputAudioContext,
+              24000,
+              1
+            );
+
+            const source = outputAudioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(outputAudioContext.destination);
+
+            source.addEventListener('ended', () => {
+              sources.delete(source);
+            });
+
+            source.start(nextStartTime);
+            nextStartTime += audioBuffer.duration;
+            sources.add(source);
+          }
+
+          if (message.serverContent?.interrupted) {
+            sources.forEach(s => s.stop());
+            sources.clear();
+            nextStartTime = 0;
+          }
+        },
+        onclose: () => {
+          callbacks.onStatusChange('disconnected');
+          disconnectLive();
+        },
+        onerror: (e) => {
+          console.error("Live API Error:", e);
+          callbacks.onStatusChange('error');
+          disconnectLive();
+        }
+      },
+      config: {
+        responseModalities: [Modality.AUDIO], // Use Modality.AUDIO enum
+        speechConfig: {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } }
+        },
+        systemInstruction: systemInstruction,
+        thinkingConfig: { thinkingBudget: 0 },
+        tools: [{ functionDeclarations: activeTools }]
+      }
+    });
+
+    liveSession = sessionPromise;
+
+  } catch (error) {
+    console.error("Failed to connect live:", error);
+    callbacks.onStatusChange('error');
+  }
 };
 
 export const disconnectLive = () => {
-    // Stop Microphone
-    if (inputSource) {
-        try {
-            inputSource.mediaStream.getTracks().forEach(track => track.stop());
-            inputSource.disconnect();
-        } catch(e) {}
-        inputSource = null;
-    }
-    if (processor) {
-        try {
-            processor.disconnect();
-        } catch(e) {}
-        processor = null;
-    }
-    if (inputAudioContext) {
-        try {
-            inputAudioContext.close();
-        } catch(e) {}
-        inputAudioContext = null;
-    }
+  // Stop Microphone
+  if (inputSource) {
+    try {
+      inputSource.mediaStream.getTracks().forEach(track => track.stop());
+      inputSource.disconnect();
+    } catch (e) { }
+    inputSource = null;
+  }
+  if (processor) {
+    try {
+      processor.disconnect();
+    } catch (e) { }
+    processor = null;
+  }
+  if (inputAudioContext) {
+    try {
+      inputAudioContext.close();
+    } catch (e) { }
+    inputAudioContext = null;
+  }
 
-    // Stop Output
-    sources.forEach(s => {
-        try { s.stop(); } catch (e) {}
-    });
-    sources.clear();
-    
-    if (outputAudioContext) {
-        try {
-            outputAudioContext.close();
-        } catch(e) {}
-        outputAudioContext = null;
-    }
+  // Stop Output
+  sources.forEach(s => {
+    try { s.stop(); } catch (e) { }
+  });
+  sources.clear();
 
-    // Close Session
-    // Note: session.close() is not explicitly in the promise if rejected, but let's try to close if existing
-    if (liveSession) {
-        liveSession.then((s: any) => {
-            try { s.close(); } catch(e) {}
-        }).catch(() => {});
-        liveSession = null;
-    }
+  if (outputAudioContext) {
+    try {
+      outputAudioContext.close();
+    } catch (e) { }
+    outputAudioContext = null;
+  }
+
+  // Close Session
+  // Note: session.close() is not explicitly in the promise if rejected, but let's try to close if existing
+  if (liveSession) {
+    liveSession.then((s: any) => {
+      try { s.close(); } catch (e) { }
+    }).catch(() => { });
+    liveSession = null;
+  }
 };
