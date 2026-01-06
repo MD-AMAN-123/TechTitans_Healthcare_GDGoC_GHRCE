@@ -119,6 +119,18 @@ const Dashboard: React.FC<DashboardProps> = ({ userName, userImage, metrics, app
   const [activeNotification, setActiveNotification] = useState<Notification | null>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
+  // Auto-switch notification modal if 'request' is replaced by 'confirmed'
+  useEffect(() => {
+    if (activeNotification && activeNotification.id.startsWith('request_')) {
+      const aptId = activeNotification.id.replace('request_', '');
+      const confirmedNotification = notifications.find(n => n.id === `confirmed_${aptId}`);
+
+      if (confirmedNotification) {
+        setActiveNotification(confirmedNotification);
+      }
+    }
+  }, [notifications, activeNotification]);
+
   // View State for expansion
   const [showAllAppointments, setShowAllAppointments] = useState(false);
   const [showAllInsights, setShowAllInsights] = useState(false);
