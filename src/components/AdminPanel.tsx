@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Appointment } from '../types';
-import { Calendar, Clock, User, CheckCircle, XCircle, Search, Filter, Shield, MoreHorizontal, Video, MapPin, Check, X, Phone, Link as LinkIcon, AlertCircle, Share2, Trash2 } from 'lucide-react';
+import { Calendar, Clock, User, CheckCircle, XCircle, Search, Filter, Shield, MoreHorizontal, Video, MapPin, Check, X, Phone, Link as LinkIcon, AlertCircle, Share2, Trash2, Sun, Moon } from 'lucide-react';
 
 interface AdminPanelProps {
   appointments: Appointment[];
   onUpdateStatus: (id: string, status: 'upcoming' | 'cancelled', meetLink?: string) => void;
   onDeleteAppointment: (id: string) => void;
+  isDarkMode?: boolean;
+  toggleTheme?: () => void;
 }
 
 // Helper to parse date strings like "Today", "Tomorrow", "Oct 28", "Thu, Oct 24" into a timestamp
@@ -42,7 +44,7 @@ const getAppointmentTimestamp = (dateStr: string, timeStr: string): number => {
   return targetDate.getTime();
 };
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ appointments, onUpdateStatus, onDeleteAppointment }) => {
+const AdminPanel: React.FC<AdminPanelProps> = ({ appointments, onUpdateStatus, onDeleteAppointment, isDarkMode, toggleTheme }) => {
   const [isAcceptModalOpen, setIsAcceptModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [editableLink, setEditableLink] = useState('');
@@ -138,7 +140,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ appointments, onUpdateStatus, o
           <p className="text-slate-500 dark:text-slate-400 text-sm">Manage patient appointments and scheduling.</p>
         </div>
 
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="flex gap-3 w-full md:w-auto items-center">
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
             <input
@@ -150,6 +152,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ appointments, onUpdateStatus, o
           <button className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400">
             <Filter size={18} />
           </button>
+          {toggleTheme && (
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-bold"
+            >
+              {isDarkMode ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-indigo-500" />}
+            </button>
+          )}
         </div>
       </div>
 

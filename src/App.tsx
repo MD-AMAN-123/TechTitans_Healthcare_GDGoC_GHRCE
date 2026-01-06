@@ -72,7 +72,14 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<AppView>(AppView.DASHBOARD);
   const [isVitalsModalOpen, setIsVitalsModalOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('medipulse_theme');
+      return saved === 'dark';
+    } catch (e) {
+      return false;
+    }
+  });
 
   // Doctors State with Local Storage Persistence
   const [doctors, setDoctors] = useState<Doctor[]>(() => {
@@ -101,36 +108,59 @@ const App: React.FC = () => {
   const [editedMobile, setEditedMobile] = useState('');
   const [editedImage, setEditedImage] = useState('');
 
-  // Admin Notifications State
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      title: 'Flu Season Alert',
-      message: 'Flu shots are now available. Book an appointment with a GP today.',
-      time: '2 hours ago',
-      type: 'alert',
-      read: false
-    },
-    {
-      id: '2',
-      title: 'System Update',
-      message: 'MediPulse AI has been updated with new symptom analysis models.',
-      time: '1 day ago',
-      type: 'success',
-      read: false
-    },
-    {
-      id: '3',
-      title: 'Dr. Sarah Check-in',
-      message: 'Dr. Sarah has reviewed your latest vitals and suggests increasing water intake.',
-      time: '2 days ago',
-      type: 'info',
-      read: true
-    }
-  ]);
+  // Notifications State with Local Storage Persistence
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    try {
+      const saved = localStorage.getItem('medipulse_notifications');
+      if (saved) return JSON.parse(saved);
+    } catch (e) { }
+    return [
+      {
+        id: '1',
+        title: 'Flu Season Alert',
+        message: 'Flu shots are now available. Book an appointment with a GP today.',
+        time: '2 hours ago',
+        type: 'alert',
+        read: false
+      },
+      {
+        id: '2',
+        title: 'System Update',
+        message: 'MediPulse AI has been updated with new symptom analysis models.',
+        time: '1 day ago',
+        type: 'success',
+        read: false
+      },
+      {
+        id: '3',
+        title: 'Dr. Sarah Check-in',
+        message: 'Dr. Sarah has reviewed your latest vitals and suggests increasing water intake.',
+        time: '2 days ago',
+        type: 'info',
+        read: true
+      }
+    ];
+  });
 
-  // Appointments State
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  // Save notifications to local storage whenever changed
+  useEffect(() => {
+    localStorage.setItem('medipulse_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  // Appointments State with Local Storage Persistence
+  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+    try {
+      const saved = localStorage.getItem('medipulse_appointments');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Save appointments to local storage whenever changed
+  useEffect(() => {
+    localStorage.setItem('medipulse_appointments', JSON.stringify(appointments));
+  }, [appointments]);
 
   const isAdmin = user?.email === 'admin@medipulse.ai' || user?.role === 'admin';
 
@@ -235,6 +265,10 @@ const App: React.FC = () => {
   ]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem('medipulse_theme', isDarkMode ? 'dark' : 'light');
+    } catch (e) { }
+
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
@@ -584,6 +618,8 @@ const App: React.FC = () => {
             appointments={appointments}
             onUpdateStatus={handleUpdateAppointmentStatus}
             onDeleteAppointment={handleDeleteAppointment}
+            isDarkMode={isDarkMode}
+            toggleTheme={toggleTheme}
           />
         ) : (
           <Dashboard
