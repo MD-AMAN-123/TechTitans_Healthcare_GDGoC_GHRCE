@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Send, MessageSquare, HelpCircle, ChevronRight, CheckCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, MessageSquare, HelpCircle, ChevronRight, CheckCircle, Linkedin, Github, Instagram } from 'lucide-react';
 
 const Support: React.FC = () => {
     const [name, setName] = useState('');
@@ -142,6 +142,21 @@ const Support: React.FC = () => {
                                 <div>
                                     <p className="font-semibold opacity-90">Office</p>
                                     <p className="text-indigo-100 text-sm">Hyderabad,Telangana</p>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-white/20 pt-4 mt-2">
+                                <p className="font-semibold opacity-90 mb-3">Follow Us</p>
+                                <div className="flex gap-3">
+                                    <a href="https://www.linkedin.com/in/muhammadaman-" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-all text-white">
+                                        <Linkedin size={20} />
+                                    </a>
+                                    <a href="https://github.com/MD-AMAN-123" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-all text-white">
+                                        <Github size={20} />
+                                    </a>
+                                    <a href="https://www.instagram.com/md.aman_123?igsh=MWx3aDIyODBraGplZg==" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/20 rounded-lg backdrop-blur-sm hover:bg-white/30 transition-all text-white">
+                                        <Instagram size={20} />
+                                    </a>
                                 </div>
                             </div>
                         </div>
