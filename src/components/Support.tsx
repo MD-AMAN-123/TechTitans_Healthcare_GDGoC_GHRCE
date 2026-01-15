@@ -132,7 +132,7 @@ const Support: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="font-semibold opacity-90">Phone</p>
-                                    <p className="text-indigo-100 text-sm">+1 (555) 123-4567</p>
+                                    <p className="text-indigo-100 text-sm">+91 9059089036</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-4">
@@ -141,7 +141,7 @@ const Support: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="font-semibold opacity-90">Office</p>
-                                    <p className="text-indigo-100 text-sm">123 Health Valley, CA 94043</p>
+                                    <p className="text-indigo-100 text-sm">Hyderabad,Telangana</p>
                                 </div>
                             </div>
                         </div>
